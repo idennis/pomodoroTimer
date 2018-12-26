@@ -145,7 +145,9 @@ extension ViewController: NSTouchBarDelegate {
         case NSTouchBarItem.Identifier.timerBar:
             
             let customViewItem = NSCustomTouchBarItem(identifier: identifier)
-
+            
+            
+            // MARK: Create Timer Bar Shape Layer
             self.pomodoroTimerBarView.wantsLayer = true
             let timerBarContainer = CAShapeLayer()
             let timerBar = createTimerBar(x: 12.5, y: 0.0, width: 500, height: 30, xRadius: 5.0, yRadius: 5.0)
@@ -156,15 +158,16 @@ extension ViewController: NSTouchBarDelegate {
             
             // MARK: Create Text Label for Timer
             let myAttribute = [
-                NSAttributedString.Key.font: NSFont.systemFont(ofSize: 15.0),
+                NSAttributedString.Key.font: NSFont.systemFont(ofSize: 0),
                 NSAttributedString.Key.foregroundColor: NSColor.white
             ]
             
             let timerText = NSAttributedString(string: "Time Remaining: ", attributes: myAttribute )
             let myTextLayer = CATextLayer()
             myTextLayer.string = timerText
-            myTextLayer.frame = timerBar.path!.boundingBox
+            myTextLayer.frame = CGRect(x: timerBar.path!.boundingBox.origin.x + 12.5, y: (timerBar.path!.boundingBox.height - myTextLayer.fontSize) - 0.5, width: timerBar.path!.boundingBox.width, height: timerBar.path!.boundingBox.height)
             myTextLayer.opacity = 1.0
+            myTextLayer.alignmentMode = CATextLayerAlignmentMode.natural
             myTextLayer.contentsScale = (NSScreen.main?.backingScaleFactor)!
             self.pomodoroTimerBarView.layer?.addSublayer(myTextLayer)
             
