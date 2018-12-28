@@ -9,22 +9,39 @@
 import Cocoa
 
 class ViewController: NSViewController {
-  
-  @IBOutlet var nameField: NSTextField!
-  
     
+    @IBOutlet var nameField: NSTextField!
+    
+    // Setting up the timer bar UI
     let pomodoroTimerBarView = NSView()
+    var timerBarContainer:CAShapeLayer!
+    var timerBar:CAShapeLayer!
+
+    // Setting up timer
+    var timer:Timer? = nil
+    var progressCounter:Float = 0
+    let duration:Float = 10.0
+    var progressIncrement:Float = 0
+    var progress: Float = 0 {
+        willSet(newValue)
+        {
+            progressIncrement = 1.0/duration
+            resizeTimerBar(finalWidth: CGFloat(newValue), path: self.timerBar.path!, shapeLayer: self.timerBar!)
+            print("resize!")
+            print("newValue: ", newValue)
+        }
+    }
     
     @objc var visited = 0
     @objc var rating = 0
-  
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         if #available(OSX 10.12.2, *) {
             nameField.isAutomaticTextCompletionEnabled = false
         }
     }
-  
+    
     @IBAction func save(_ sender: Any) {
         willChangeValue(forKey: "rating")
         willChangeValue(forKey: "visited")
@@ -34,60 +51,76 @@ class ViewController: NSViewController {
         didChangeValue(forKey: "rating")
         didChangeValue(forKey: "visited")
     }
-  
-  @IBAction func changevisitedAmount(_ sender: NSSegmentedControl) {
-    willChangeValue(forKey: "visited")
-    switch sender.selectedSegment {
-    case 0:
-      if visited > 0 {
-        visited -= 1
-      }
-    case 1:
-      visited += 1
-    default:
-      break
+    
+    @IBAction func changevisitedAmount(_ sender: NSSegmentedControl) {
+        willChangeValue(forKey: "visited")
+        switch sender.selectedSegment {
+        case 0:
+            if visited > 0 {
+                visited -= 1
+            }
+        case 1:
+            visited += 1
+        default:
+            break
+        }
+        didChangeValue(forKey: "visited")
     }
-    didChangeValue(forKey: "visited")
-  }
-  
-  @IBAction func changeRating(_ sender: NSSegmentedControl) {
-    willChangeValue(forKey: "rating")
-    switch sender.selectedSegment {
-    case 0:
-      if rating > 0 {
-        rating -= 1
-      }
-    case 1:
-      if rating < 4 {
-        rating += 1
-      }
-    default:
-      break
+    
+    @IBAction func changeRating(_ sender: NSSegmentedControl) {
+        willChangeValue(forKey: "rating")
+        switch sender.selectedSegment {
+        case 0:
+            if rating > 0 {
+                rating -= 1
+            }
+        case 1:
+            if rating < 4 {
+                rating += 1
+            }
+        default:
+            break
+        }
+        didChangeValue(forKey: "rating")
     }
-    didChangeValue(forKey: "rating")
-  }
-  
+    
+    
+    // MARK: - Start Countdown
+    @objc public func startCountdown() {
+        if(progressCounter > 1.0){self.timer?.invalidate()}
+        progress = progressCounter
+        progressCounter = progressCounter + progressIncrement
+    }
 }
 
 // MARK: - Pomodoro Timer Rectangle
-func createTimerBar(x: Double, y: Double, width: Double, height: Double, xRadius: CGFloat, yRadius: CGFloat) -> CAShapeLayer {
+func createBar(x: Double, y: Double, width: Double, height: Double, xRadius: CGFloat, yRadius: CGFloat, fillColor: CGColor) -> CAShapeLayer {
     let aLED = CAShapeLayer()
     // LED shape
     let aLEDRect = CGRect(x: x, y: y, width: width, height: height)
     aLED.path = NSBezierPath(roundedRect: aLEDRect, xRadius: xRadius, yRadius: yRadius).cgPath
     aLED.opacity = 0
     aLED.masksToBounds = false
-    aLED.fillColor = NSColor.systemRed.cgColor
+    aLED.fillColor = fillColor
     
     // LED color glow
-//    aLED.shadowColor = NSColor.red.cgColor
-//    aLED.shadowOffset = CGSize.zero
-//    aLED.shadowRadius = 6.0
-//    aLED.shadowOpacity = 1.0
+    //    aLED.shadowColor = NSColor.red.cgColor
+    //    aLED.shadowOffset = CGSize.zero
+    //    aLED.shadowRadius = 6.0
+    //    aLED.shadowOpacity = 1.0
     
     return aLED
 }
 
+
+func resizeTimerBar(finalWidth: CGFloat, path: CGPath, shapeLayer: CAShapeLayer) {
+    let boundingBox = path.boundingBox
+    
+    let xScaleFactor = finalWidth  / boundingBox.width
+    let yScaleFactor = boundingBox.height
+    let scaleTransform = CATransform3DMakeScale(xScaleFactor, yScaleFactor, 1.0)
+    shapeLayer.transform = scaleTransform
+}
 
 
 
@@ -95,23 +128,23 @@ func createTimerBar(x: Double, y: Double, width: Double, height: Double, xRadius
 
 @available(OSX 10.12.2, *)
 extension ViewController: NSScrubberDataSource, NSScrubberDelegate {
-  
-  func numberOfItems(for scrubber: NSScrubber) -> Int {
-    return 5
-  }
-  
-  func scrubber(_ scrubber: NSScrubber, viewForItemAt index: Int) -> NSScrubberItemView {
-    let itemView = scrubber.makeItem(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "RatingScrubberItemIdentifier"), owner: nil) as! NSScrubberTextItemView
-    itemView.textField.stringValue = String(index)
-    return itemView
-  }
-  
-  func scrubber(_ scrubber: NSScrubber, didSelectItemAt index: Int) {
-    willChangeValue(forKey: "rating")
-    rating = index
-    didChangeValue(forKey: "rating")
-  }
-  
+    
+    func numberOfItems(for scrubber: NSScrubber) -> Int {
+        return 5
+    }
+    
+    func scrubber(_ scrubber: NSScrubber, viewForItemAt index: Int) -> NSScrubberItemView {
+        let itemView = scrubber.makeItem(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "RatingScrubberItemIdentifier"), owner: nil) as! NSScrubberTextItemView
+        itemView.textField.stringValue = String(index)
+        return itemView
+    }
+    
+    func scrubber(_ scrubber: NSScrubber, didSelectItemAt index: Int) {
+        willChangeValue(forKey: "rating")
+        rating = index
+        didChangeValue(forKey: "rating")
+    }
+    
 }
 
 // MARK: - TouchBar Delegate
@@ -126,7 +159,7 @@ extension ViewController: NSTouchBarDelegate {
         // 3
         // Always implement the list of items in a Touch Bar via an array.
         touchBar.defaultItemIdentifiers = [.appLabel, .timerBar]
-//        touchBar.defaultItemIdentifiers = [.appLabel, .timerBar,  .visitedLabelItem, .visitedItem, .visitSegmentedItem, .flexibleSpace, .saveItem]
+        //        touchBar.defaultItemIdentifiers = [.appLabel, .timerBar,  .visitedLabelItem, .visitedItem, .visitSegmentedItem, .flexibleSpace, .saveItem]
         // 4
         touchBar.customizationAllowedItemIdentifiers = [.infoLabelItem]
         return touchBar
@@ -135,26 +168,46 @@ extension ViewController: NSTouchBarDelegate {
     @available(OSX 10.12.2, *)
     func touchBar(_ touchBar: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
         switch identifier {
-
+            
         case NSTouchBarItem.Identifier.appLabel:
             let customViewItem = NSCustomTouchBarItem(identifier: identifier)
             customViewItem.view = NSTextField(labelWithString: "🍅")
             return customViewItem
-
-
+            
+            
         case NSTouchBarItem.Identifier.timerBar:
             
             let customViewItem = NSCustomTouchBarItem(identifier: identifier)
-            
+            self.timerBarContainer = CAShapeLayer()
             
             // MARK: Create Timer Bar Shape Layer
             self.pomodoroTimerBarView.wantsLayer = true
-            let timerBarContainer = CAShapeLayer()
-            let timerBar = createTimerBar(x: 12.5, y: 0.0, width: 500, height: 30, xRadius: 5.0, yRadius: 5.0)
-            timerBar.opacity = 1.0
-            timerBarContainer.addSublayer(timerBar)
+
+            // Create bg bar
+            var fillColor = CGColor.init(red: 0.10, green: 0.10, blue: 0.10, alpha: 1.0)
+            let bgBar = createBar(x: 12.5, y: 0.0, width: 500, height: 30, xRadius: 5.0, yRadius: 5.0, fillColor: fillColor)
+            bgBar.opacity = 1.0
             
-            pomodoroTimerBarView.layer?.addSublayer(timerBarContainer)
+            // Create timer bar
+            fillColor = NSColor.systemRed.cgColor
+            self.timerBar = createBar(x: 12.5, y: 0.0, width: 480, height: 30, xRadius: 5.0, yRadius: 5.0, fillColor: fillColor)
+            self.timerBar.opacity = 1.0
+            
+            
+            if(self.timer == nil) {
+                timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(self.startCountdown), userInfo: nil, repeats: false)
+            }
+            
+            
+            
+            self.timerBarContainer.addSublayer(bgBar)
+            self.timerBarContainer.addSublayer(self.timerBar)
+            
+            pomodoroTimerBarView.layer?.addSublayer(self.timerBarContainer)
+            
+            
+            
+            
             
             // MARK: Create Text Label for Timer
             let myAttribute = [
@@ -175,11 +228,11 @@ extension ViewController: NSTouchBarDelegate {
             customViewItem.view = pomodoroTimerBarView
             
             return customViewItem
-
-
-
-
-
+            
+            
+            
+            
+            
         case NSTouchBarItem.Identifier.ratingScrubber:
             // 2
             let scrubberItem = NSCustomTouchBarItem(identifier: identifier)
@@ -218,7 +271,7 @@ extension ViewController: NSTouchBarDelegate {
             button.bezelColor = NSColor(red:0.35, green:0.61, blue:0.35, alpha:1.00)
             saveItem.view = button
             return saveItem
-
+            
         default:
             return nil
         }
