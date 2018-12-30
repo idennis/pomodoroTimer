@@ -134,7 +134,8 @@ func resizeTimerBar(invertedProgressPercentage: CGFloat, path: CGPath, shapeLaye
     let boundingBox = path.boundingBox
     
     // Calculate the width scale factor
-    let xScaleFactor = invertedProgressPercentage  / boundingBox.width
+    print("inverted percentage", invertedProgressPercentage)
+    let xScaleFactor = invertedProgressPercentage  * boundingBox.width / 100 / boundingBox.width
     let yScaleFactor = boundingBox.height
     let scaleTransform = CATransform3DMakeScale(xScaleFactor, yScaleFactor, 1.0)
     shapeLayer.transform = scaleTransform
