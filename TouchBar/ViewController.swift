@@ -21,12 +21,16 @@ class ViewController: NSViewController {
     var timer:Timer? = nil
     var progressCounter:Float = 0
     let duration:Float = 10.0
-    var progressIncrement:Float = 0
+
+    var timeRemaining = 60.0
+    var totalTime = 60.0
+
+    
     var progress: Float = 0 {
         willSet(newValue)
         {
-            progressIncrement = 1.0/duration
-            resizeTimerBar(finalWidth: CGFloat(newValue), path: self.timerBar.path!, shapeLayer: self.timerBar!)
+            //newValue is the same as progress (aka the percentage of progress til countdown timer is complete).
+            resizeTimerBar(invertedProgressPercentage: CGFloat(100.00 - newValue), path: self.timerBar.path!, shapeLayer: self.timerBar!)
             print("resize!")
             print("newValue: ", newValue)
         }
@@ -87,9 +91,22 @@ class ViewController: NSViewController {
     
     // MARK: - Start Countdown
     @objc public func startCountdown() {
-        if(progressCounter > 1.0){self.timer?.invalidate()}
-        progress = progressCounter
-        progressCounter = progressCounter + progressIncrement
+
+        if (timeRemaining == 0) {self.timer?.invalidate()}
+        timeRemaining -= 1
+        let completionPercentage = (((Float(totalTime) - Float(timeRemaining))/Float(totalTime)) * 100)
+        self.progress = completionPercentage
+        print("timeRemaining", timeRemaining)
+        print("completionPercentage", completionPercentage)
+//        progressView.setProgress(Float(timeRemaining)/Float(totalTime), animated: false)
+        
+//        let minutesLeft = Int(timeRemaining) / 60 % 60
+//        let secondsLeft = Int(timeRemaining) % 60
+        
+        
+        
+//        manageTimerEnd(seconds: timeRemaining)
+//        isOnBreak = true
     }
 }
 
@@ -113,10 +130,11 @@ func createBar(x: Double, y: Double, width: Double, height: Double, xRadius: CGF
 }
 
 
-func resizeTimerBar(finalWidth: CGFloat, path: CGPath, shapeLayer: CAShapeLayer) {
+func resizeTimerBar(invertedProgressPercentage: CGFloat, path: CGPath, shapeLayer: CAShapeLayer) {
     let boundingBox = path.boundingBox
     
-    let xScaleFactor = finalWidth  / boundingBox.width
+    // Calculate the width scale factor
+    let xScaleFactor = invertedProgressPercentage  / boundingBox.width
     let yScaleFactor = boundingBox.height
     let scaleTransform = CATransform3DMakeScale(xScaleFactor, yScaleFactor, 1.0)
     shapeLayer.transform = scaleTransform
@@ -195,7 +213,7 @@ extension ViewController: NSTouchBarDelegate {
             
             
             if(self.timer == nil) {
-                timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(self.startCountdown), userInfo: nil, repeats: false)
+                timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(self.startCountdown), userInfo: nil, repeats: true)
             }
             
             
