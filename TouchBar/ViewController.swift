@@ -22,8 +22,8 @@ class ViewController: NSViewController {
     var progressCounter:Float = 0
     let duration:Float = 10.0
 
-    var timeRemaining = 60.0
-    var totalTime = 60.0
+    var timeRemaining = 10.0
+    var totalTime = 10.0
 
     
     var progress: Float = 0 {
@@ -91,56 +91,67 @@ class ViewController: NSViewController {
     
     // MARK: - Start Countdown
     @objc public func startCountdown() {
-
-        if (timeRemaining == 0) {self.timer?.invalidate()}
-        timeRemaining -= 1
-        let completionPercentage = (((Float(totalTime) - Float(timeRemaining))/Float(totalTime)) * 100)
-        self.progress = completionPercentage
-        print("timeRemaining", timeRemaining)
-        print("completionPercentage", completionPercentage)
-//        progressView.setProgress(Float(timeRemaining)/Float(totalTime), animated: false)
-        
-//        let minutesLeft = Int(timeRemaining) / 60 % 60
-//        let secondsLeft = Int(timeRemaining) % 60
-        
-        
-        
-//        manageTimerEnd(seconds: timeRemaining)
-//        isOnBreak = true
+        if (timeRemaining <= 0) {self.timer?.invalidate()}
+        else {
+            timeRemaining -= 1
+            let completionPercentage = (((Float(totalTime) - Float(timeRemaining))/Float(totalTime)) * 100)
+            self.progress = completionPercentage
+            print("timeRemaining", timeRemaining)
+            print("completionPercentage", completionPercentage)
+    //        progressView.setProgress(Float(timeRemaining)/Float(totalTime), animated: false)
+            
+    //        let minutesLeft = Int(timeRemaining) / 60 % 60
+    //        let secondsLeft = Int(timeRemaining) % 60
+            
+            
+            
+    //        manageTimerEnd(seconds: timeRemaining)
+    //        isOnBreak = true
+        }
     }
 }
 
 // MARK: - Pomodoro Timer Rectangle
 func createBar(x: Double, y: Double, width: Double, height: Double, xRadius: CGFloat, yRadius: CGFloat, fillColor: CGColor) -> CAShapeLayer {
-    let aLED = CAShapeLayer()
+    let barShapeLayer = CAShapeLayer()
     // LED shape
-    let aLEDRect = CGRect(x: x, y: y, width: width, height: height)
-    aLED.path = NSBezierPath(roundedRect: aLEDRect, xRadius: xRadius, yRadius: yRadius).cgPath
-    aLED.opacity = 0
-    aLED.masksToBounds = false
-    aLED.fillColor = fillColor
+    let rectangle = CGRect(x: x, y: y, width: width, height: height)
+    barShapeLayer.path = NSBezierPath(roundedRect: rectangle, xRadius: xRadius, yRadius: yRadius).cgPath
+    barShapeLayer.opacity = 0
+    barShapeLayer.masksToBounds = false
+    barShapeLayer.fillColor = fillColor
     
-    // LED color glow
-    //    aLED.shadowColor = NSColor.red.cgColor
-    //    aLED.shadowOffset = CGSize.zero
-    //    aLED.shadowRadius = 6.0
-    //    aLED.shadowOpacity = 1.0
-    
-    return aLED
+    return barShapeLayer
 }
 
 
 func resizeTimerBar(invertedProgressPercentage: CGFloat, path: CGPath, shapeLayer: CAShapeLayer) {
     let boundingBox = path.boundingBox
-    
+//    setAnchorPoint(anchorPoint: CGPoint(x: 0.0, y: 0.0), forLayer: shapeLayer)
+//    shapeLayer.anchorPoint = CGPoint(x: 0.0, y: 1.0)
     // Calculate the width scale factor
-    print("inverted percentage", invertedProgressPercentage)
+//    print("inverted percentage", invertedProgressPercentage)
     let xScaleFactor = invertedProgressPercentage  * boundingBox.width / 100 / boundingBox.width
-    let yScaleFactor = boundingBox.height
-    let scaleTransform = CATransform3DMakeScale(xScaleFactor, yScaleFactor, 1.0)
+//    let yScaleFactor = boundingBox.height
+    let scaleTransform = CATransform3DMakeScale(xScaleFactor, 1.0, 1.0)
     shapeLayer.transform = scaleTransform
 }
 
+func setAnchorPoint(anchorPoint: CGPoint, forLayer layer: CALayer) {
+    var newPoint = CGPoint(x: layer.bounds.size.width * anchorPoint.x, y: layer.bounds.size.height * anchorPoint.y)
+    var oldPoint = CGPoint(x: layer.bounds.size.width * layer.anchorPoint.x, y: layer.bounds.size.height * layer.anchorPoint.y)
+    newPoint = newPoint.applying(layer.affineTransform())
+    oldPoint = oldPoint.applying(layer.affineTransform())
+    
+    var position = layer.position
+    position.x -= oldPoint.x
+    position.x += newPoint.x
+    position.y -= oldPoint.y
+    position.y += newPoint.y
+    
+    layer.position = position
+    layer.anchorPoint = anchorPoint
+}
 
 
 // MARK: - Scrubber DataSource & Delegate
@@ -170,16 +181,11 @@ extension ViewController: NSScrubberDataSource, NSScrubberDelegate {
 @available(OSX 10.12.2, *)
 extension ViewController: NSTouchBarDelegate {
     override func makeTouchBar() -> NSTouchBar? {
-        // 1
         let touchBar = NSTouchBar()
         touchBar.delegate = self
-        // 2
         touchBar.customizationIdentifier = .travelBar
-        // 3
         // Always implement the list of items in a Touch Bar via an array.
         touchBar.defaultItemIdentifiers = [.appLabel, .timerBar]
-        //        touchBar.defaultItemIdentifiers = [.appLabel, .timerBar,  .visitedLabelItem, .visitedItem, .visitSegmentedItem, .flexibleSpace, .saveItem]
-        // 4
         touchBar.customizationAllowedItemIdentifiers = [.infoLabelItem]
         return touchBar
     }
@@ -201,7 +207,7 @@ extension ViewController: NSTouchBarDelegate {
             
             // MARK: Create Timer Bar Shape Layer
             self.pomodoroTimerBarView.wantsLayer = true
-
+            self.pomodoroTimerBarView.bounds = NSRect(x: 12.5, y: 0.0, width: 500, height: 30)
             // Create bg bar
             var fillColor = CGColor.init(red: 0.10, green: 0.10, blue: 0.10, alpha: 1.0)
             let bgBar = createBar(x: 12.5, y: 0.0, width: 500, height: 30, xRadius: 5.0, yRadius: 5.0, fillColor: fillColor)
@@ -210,6 +216,8 @@ extension ViewController: NSTouchBarDelegate {
             // Create timer bar
             fillColor = NSColor.systemRed.cgColor
             self.timerBar = createBar(x: 12.5, y: 0.0, width: 480, height: 30, xRadius: 5.0, yRadius: 5.0, fillColor: fillColor)
+            self.timerBar.frame = CGRect(x: 12.5, y: 0, width: self.timerBar.path!.boundingBox.width, height: 30)
+            self.timerBar.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             self.timerBar.opacity = 1.0
             
             
