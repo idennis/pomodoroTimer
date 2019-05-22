@@ -98,7 +98,7 @@ class ViewController: NSViewController {
             self.progress = completionPercentage
             print("timeRemaining", timeRemaining)
             print("completionPercentage", completionPercentage)
-    //        progressView.setProgress(Float(timeRemaining)/Float(totalTime), animated: false)
+//            progressView.setProgress(Float(timeRemaining)/Float(totalTime), animated: false)
             
     //        let minutesLeft = Int(timeRemaining) / 60 % 60
     //        let secondsLeft = Int(timeRemaining) % 60
@@ -126,33 +126,14 @@ func createBar(x: Double, y: Double, width: Double, height: Double, xRadius: CGF
 
 
 func resizeTimerBar(invertedProgressPercentage: CGFloat, path: CGPath, shapeLayer: CAShapeLayer) {
-    let boundingBox = path.boundingBox
-//    setAnchorPoint(anchorPoint: CGPoint(x: 0.0, y: 0.0), forLayer: shapeLayer)
-//    shapeLayer.anchorPoint = CGPoint(x: 0.0, y: 1.0)
-    // Calculate the width scale factor
-//    print("inverted percentage", invertedProgressPercentage)
-    let xScaleFactor = invertedProgressPercentage  * boundingBox.width / 100 / boundingBox.width
-//    let yScaleFactor = boundingBox.height
-    let scaleTransform = CATransform3DMakeScale(xScaleFactor, 1.0, 1.0)
-    shapeLayer.transform = scaleTransform
+//    let boundingBox = path.boundingBox
+    let newBox = CGRect(x: 0, y: shapeLayer.bounds.minY, width: invertedProgressPercentage/100*shapeLayer.bounds.width, height: shapeLayer.bounds.height)
+    let newPath = CGPath(roundedRect: newBox, cornerWidth: 5.0, cornerHeight: 5.0, transform: nil)
+    var layerAnimation = CABasicAnimation(keyPath: "path")
+    layerAnimation.fromValue = shapeLayer.path
+    layerAnimation.toValue = newPath
+    shapeLayer.path = newPath
 }
-
-func setAnchorPoint(anchorPoint: CGPoint, forLayer layer: CALayer) {
-    var newPoint = CGPoint(x: layer.bounds.size.width * anchorPoint.x, y: layer.bounds.size.height * anchorPoint.y)
-    var oldPoint = CGPoint(x: layer.bounds.size.width * layer.anchorPoint.x, y: layer.bounds.size.height * layer.anchorPoint.y)
-    newPoint = newPoint.applying(layer.affineTransform())
-    oldPoint = oldPoint.applying(layer.affineTransform())
-    
-    var position = layer.position
-    position.x -= oldPoint.x
-    position.x += newPoint.x
-    position.y -= oldPoint.y
-    position.y += newPoint.y
-    
-    layer.position = position
-    layer.anchorPoint = anchorPoint
-}
-
 
 // MARK: - Scrubber DataSource & Delegate
 
@@ -216,7 +197,7 @@ extension ViewController: NSTouchBarDelegate {
             // Create timer bar
             fillColor = NSColor.systemRed.cgColor
             self.timerBar = createBar(x: 12.5, y: 0.0, width: 480, height: 30, xRadius: 5.0, yRadius: 5.0, fillColor: fillColor)
-            self.timerBar.frame = CGRect(x: 12.5, y: 0, width: self.timerBar.path!.boundingBox.width, height: 30)
+            self.timerBar.frame = CGRect(x: 0, y: 0, width: self.timerBar.path!.boundingBox.width, height: 30)
             self.timerBar.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             self.timerBar.opacity = 1.0
             
